@@ -9,14 +9,14 @@ from mcp.server.models import InitializationOptions
 import mcp.server.stdio
 import mcp.types as types
 
-# 获取logger
+# Get logger
 logger = logging.getLogger(__name__)
 
-# 加载环境变量
+# Load environment variables
 load_dotenv()
 logger.info("Environment variables loaded")
 
-# 初始化GitHub客户端
+# Initialize GitHub client
 github_token = os.getenv("GITHUB_TOKEN")
 if not github_token:
     logger.error("GITHUB_TOKEN not found in environment variables")
@@ -25,13 +25,13 @@ if not github_token:
 g = Github(github_token)
 logger.info("GitHub client initialized")
 
-# 创建服务器实例
+# Create server instance
 server = Server("github-review")
 logger.info("MCP server instance created with prompts capability")
 
 @server.list_tools()
 async def handle_list_tools() -> list[types.Tool]:
-    """列出可用工具"""
+    """List available tools"""
     logger.debug("Listing available tools")
     return [
         types.Tool(
@@ -52,7 +52,7 @@ async def handle_list_tools() -> list[types.Tool]:
 
 @server.list_prompts()
 async def handle_list_prompts() -> list[types.Prompt]:
-    """列出可用的prompt模板"""
+    """List available prompt templates"""
     logger.debug("Listing available prompts")
     return [
         types.Prompt(
@@ -85,7 +85,7 @@ async def handle_list_prompts() -> list[types.Prompt]:
     ]
 
 def parse_pr_url(pr_url: str) -> tuple[str, str, int]:
-    """解析PR URL获取owner、repo和PR number"""
+    """Parse PR URL to get owner, repo, and PR number"""
     logger.debug(f"Parsing PR URL: {pr_url}")
     try:
         parts = pr_url.split('/')
@@ -99,7 +99,7 @@ def parse_pr_url(pr_url: str) -> tuple[str, str, int]:
         raise ValueError(f"Invalid PR URL format: {e}")
 
 def get_pr_content(pr_url: str) -> dict[str, Any]:
-    """获取PR内容，包括评论和review信息"""
+    """Get PR content, including comments and review information"""
     logger.info(f"Fetching PR content for URL: {pr_url}")
     try:
         owner, repo, pr_number = parse_pr_url(pr_url)
@@ -109,7 +109,7 @@ def get_pr_content(pr_url: str) -> dict[str, Any]:
         pr = repo.get_pull(pr_number)
         logger.debug(f"Retrieved PR #{pr_number}")
         
-        # 获取PR评论
+        # Get PR comments
         logger.debug("Fetching PR comments...")
         comments = []
         for comment in pr.get_issue_comments():
@@ -121,7 +121,7 @@ def get_pr_content(pr_url: str) -> dict[str, Any]:
             })
             logger.debug(f"Processed comment by {comment.user.login}")
         
-        # 获取PR review评论
+        # Get PR review comments
         logger.debug("Fetching PR review comments...")
         review_comments = []
         for comment in pr.get_review_comments():
@@ -135,7 +135,7 @@ def get_pr_content(pr_url: str) -> dict[str, Any]:
             })
             logger.debug(f"Processed review comment by {comment.user.login} on {comment.path}")
         
-        # 获取PR reviews
+        # Get PR reviews
         logger.debug("Fetching PR reviews...")
         reviews = []
         for review in pr.get_reviews():
@@ -147,7 +147,7 @@ def get_pr_content(pr_url: str) -> dict[str, Any]:
             })
             logger.debug(f"Processed review by {review.user.login}: {review.state}")
         
-        # 获取文件变更
+        # Get file changes
         files = []
         logger.debug("Fetching PR files...")
         for file in pr.get_files():
@@ -192,7 +192,7 @@ async def handle_call_tool(
     name: str, 
     arguments: dict | None
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-    """处理工具调用"""
+    """Handle tool call"""
     logger.info(f"Tool call received: {name}")
     logger.debug(f"Tool arguments: {arguments}")
     
@@ -210,7 +210,7 @@ async def handle_call_tool(
             pr_content = get_pr_content(pr_url)
             logger.debug("Formatting PR content for output")
             
-            # 格式化输出
+            # Format output
             output = [
                 f"PR Title: {pr_content['title']}\n",
                 f"Author: {pr_content['author']}",
@@ -224,26 +224,26 @@ async def handle_call_tool(
                 "\nReviews:\n"
             ]
             
-            # 添加reviews信息
+            # Add reviews information
             for review in pr_content['reviews']:
                 output.append(f"- {review['user']} ({review['state']})")
                 if review['body']:
                     output.append(f"  Comment: {review['body']}")
             
             output.append("\nComments:\n")
-            # 添加常规评论
+            # Add general comments
             for comment in pr_content['comments']:
                 output.append(f"- {comment['user']} at {comment['created_at']}:")
                 output.append(f"  {comment['body']}")
             
             output.append("\nReview Comments:\n")
-            # 添加代码行评论
+            # Add line comments
             for comment in pr_content['review_comments']:
                 output.append(f"- {comment['user']} on {comment['path']} at position {comment['position']}:")
                 output.append(f"  {comment['body']}")
             
             output.append("\nModified files:\n")
-            # 添加文件变更信息
+            # Add file change information
             for file in pr_content['files']:
                 output.append(f"\nFile: {file['filename']}")
                 output.append(f"Status: {file['status']}")
@@ -273,7 +273,7 @@ async def handle_get_prompt(
     name: str,
     arguments: dict[str, str] | None
 ) -> types.GetPromptResult:
-    """处理prompt请求"""
+    """Handle prompt request"""
     logger.info(f"Prompt request received: {name}")
     logger.debug(f"Prompt arguments: {arguments}")
     
@@ -373,10 +373,10 @@ Keep the summary clear and focused on the most important aspects.
         raise ValueError(f"Error generating prompt: {str(e)}")
 
 def format_review_history(pr_content: dict) -> str:
-    """格式化review历史"""
+    """Format review history"""
     history = []
     
-    # 添加reviews
+    # Add reviews
     if pr_content['reviews']:
         history.append("Reviews:")
         for review in pr_content['reviews']:
@@ -384,13 +384,13 @@ def format_review_history(pr_content: dict) -> str:
             if review['body']:
                 history.append(f"  Comment: {review['body']}")
     
-    # 添加评论
+    # Add comments
     if pr_content['comments']:
         history.append("\nGeneral Comments:")
         for comment in pr_content['comments']:
             history.append(f"- {comment['user']}: {comment['body']}")
     
-    # 添加review comments
+    # Add review comments
     if pr_content['review_comments']:
         history.append("\nCode Comments:")
         for comment in pr_content['review_comments']:
@@ -399,7 +399,7 @@ def format_review_history(pr_content: dict) -> str:
     return "\n".join(history)
 
 def format_file_summary(files: list) -> str:
-    """格式化文件变更摘要"""
+    """Format file change summary"""
     summary = []
     for file in files:
         summary.append(f"- {file['filename']}")
@@ -407,7 +407,7 @@ def format_file_summary(files: list) -> str:
     return "\n".join(summary)
 
 async def main():
-    """运行服务器"""
+    """Run the server"""
     logger.info("Starting MCP server...")
     try:
         async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
