@@ -1,0 +1,22 @@
+[project]
+name = "github-review"
+version = "0.1.0"
+description = "MCP server for GitHub PR code review"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp",
+    "pygithub",
+    "python-dotenv",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+
+[project.scripts]
+github-review = "github_review:main"
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/github_review"]
