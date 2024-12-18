@@ -12,6 +12,8 @@ from asyncio import TimeoutError as AsyncTimeoutError
 from github import Github
 from github.GithubException import GithubException
 import json
+from urllib.parse import urlparse
+from pydantic import AnyUrl
 
 # 获取logger
 logger = logging.getLogger(__name__)
@@ -96,7 +98,7 @@ async def handle_list_resources() -> list[types.Resource]:
         raise
 
 @server.read_resource()
-async def handle_read_resource(uri: str) -> dict:
+async def handle_read_resource(uri: AnyUrl) -> str:
     """读取资源内容"""
     try:
         uri_str = str(uri)
@@ -132,12 +134,7 @@ async def handle_read_resource(uri: str) -> dict:
                 "base": pr.base.ref,
                 "mergeable": pr.mergeable
             }
-            return {
-                "contents": [{
-                    "uri": uri_str,
-                    "text": json.dumps(content, indent=2)
-                }]
-            }
+            return json.dumps(content, indent=2)
             
         elif resource_type == "diff":
             logger.debug("Fetching PR diff content")
@@ -152,12 +149,7 @@ async def handle_read_resource(uri: str) -> dict:
                     "changes": file.changes,
                     "patch": file.patch
                 })
-            return {
-                "contents": [{
-                    "uri": uri_str,
-                    "text": json.dumps(content, indent=2)
-                }]
-            }
+            return json.dumps(content, indent=2)
             
         elif resource_type == "comments":
             logger.debug("Fetching PR comments")
@@ -171,12 +163,7 @@ async def handle_read_resource(uri: str) -> dict:
                     "position": comment.position
                 })
             logger.debug(f"Found {len(comments)} comments")
-            return {
-                "contents": [{
-                    "uri": uri_str,
-                    "text": json.dumps(comments, indent=2)
-                }]
-            }
+            return json.dumps(comments, indent=2)
             
         else:
             logger.error(f"Unknown resource type: {resource_type}")
